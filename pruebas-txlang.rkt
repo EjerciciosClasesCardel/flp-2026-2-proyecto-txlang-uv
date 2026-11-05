@@ -84,6 +84,30 @@
 ;; (prueba "una celda" "let c = ref(0) in begin set c := 5; deref(c) end end" "5")
 ;; (prueba-rechazo "if con prueba no booleana" "if 1 then 2 else 3 end")
 
+
+(ida-y-vuelta "unparse let" "let a = 1, b = 2 in +(a, b) end")
+(ida-y-vuelta "unparse if con elif" "if true then 1 elif false then 2 else 3 end")
+(ida-y-vuelta "unparse while" "while true do 1 end")
+(ida-y-vuelta "unparse proc con tipos" "proc (x: int, r: ref(int)) x end")
+(ida-y-vuelta "unparse letrec" "letrec int f (n: int) = n in apply f (1) end")
+(ida-y-vuelta "unparse begin" "begin 1; 2; 3 end")
+(ida-y-vuelta "unparse set y deref" "let c = ref(0) in begin set c := 5; deref(c) end end")
+(ida-y-vuelta "unparse comentarios" "// hola
+#| bloque |#
+42")
+(ida-y-vuelta "unparse cadena" "\"hola\"")
+(ida-y-vuelta "unparse atomic" "atomic 1 onfail (m) 2 end")
+
+(prueba "let y suma sin primitivas" "let a = 5 in a end" "5")
+(prueba "let paralelo" "let a = 1 in let a = 2, b = a in b end end" "1")
+(prueba "begin devuelve el último" "begin 1; 2; 3 end" "3")
+(prueba "if verdadero" "if true then 1 else 2 end" "1")
+(prueba "if con elif" "if false then 1 elif true then 2 else 3 end" "2")
+(prueba "if else" "if false then 1 elif false then 2 else 3 end" "3")
+(prueba-rechazo "if con prueba no booleana" "if 1 then 2 else 3 end")
+(prueba "while falso devuelve unit" "while false do 1 end" "unit")
+(prueba-rechazo "while no booleano" "while 1 do 2 end")
+
 ;;; ==========================================================
 ;;; Segunda entrega: transacciones, registros y tipos
 ;;; ==========================================================
