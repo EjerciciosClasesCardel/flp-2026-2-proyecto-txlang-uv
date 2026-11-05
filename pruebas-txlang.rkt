@@ -84,6 +84,95 @@
 ;; (prueba "una celda" "let c = ref(0) in begin set c := 5; deref(c) end end" "5")
 ;; (prueba-rechazo "if con prueba no booleana" "if 1 then 2 else 3 end")
 
+;; ---- Ambientes, valores, let, clausuras y letrec ----------------------
+
+;; Prueba directa: no pasa por el parser. Si el procedimiento aborta, el
+;; resultado es el mensaje precedido de ERROR.
+(define prueba-directa
+  (lambda (etiqueta thunk esperado)
+    (verificar etiqueta
+               (with-handlers ((exn:fail? (lambda (e) (string-append "ERROR: " (exn-message e)))))
+                 (thunk))
+               esperado)))
+
+(define termina-con?
+  (lambda (texto sufijo)
+    (let ((n (string-length texto)) (m (string-length sufijo)))
+      (and (>= n m) (string=? (substring texto (- n m) n) sufijo)))))
+
+;; El procedimiento debe abortar con un mensaje que termina en el sufijo.
+(define prueba-directa-error
+  (lambda (etiqueta thunk sufijo)
+    (let ((r (with-handlers ((exn:fail? (lambda (e) (string-append "ERROR: " (exn-message e)))))
+               (thunk))))
+      (if (and (empieza-con-error? r) (termina-con? r sufijo))
+          (begin (set! pasadas (+ pasadas 1))
+                 (eopl:printf "  ok    ~a  [~a]~%" etiqueta r))
+          (begin (set! fallidas (+ fallidas 1))
+                 (eopl:printf "  FALLA ~a: se esperaba un error que termine en ~s y llegó ~s~%"
+                              etiqueta sufijo r))))))
+
+;; Sin gramática: sirven desde ya, con los ASTs armados a mano.
+(define amb-prueba
+  (ambiente-extendido '(x y) (list (valor-entero 1) (valor-booleano #t))
+    (ambiente-extendido '(x z) (list (valor-cadena "viejo") (valor-flotante 2.5))
+      (ambiente-vacio))))
+
+(define amb-rec
+  (ambiente-recursivo '(f) (list '(a)) (list (lit-exp 7)) (ambiente-vacio)))
+
+(prueba-directa "apply-env: la ligadura nueva tapa a la vieja"
+  (lambda () (valor->texto (apply-env amb-prueba 'x))) "1")
+(prueba-directa "apply-env: busca en el ambiente exterior"
+  (lambda () (valor->texto (apply-env amb-prueba 'z))) "2.5")
+(prueba-directa-error "apply-env: variable inexistente"
+  (lambda () (apply-env amb-prueba 'w)) "No se encuentra la variable w")
+(prueba-directa "ambiente recursivo: la clausura se ve a sí misma"
+  (lambda ()
+    (cases valor (apply-env amb-rec 'f)
+      (valor-clausura (params cuerpo amb) (valor->texto (apply-env amb 'f)))
+      (else "no es clausura")))
+  "<procedimiento>")
+(prueba-directa "aplicar-clausura de un procedimiento recursivo"
+  (lambda () (valor->texto (aplicar-clausura (apply-env amb-rec 'f) (list (valor-entero 0)))))
+  "7")
+(prueba-directa "valor->texto de cada valor"
+  (lambda ()
+    (apply string-append
+           (map (lambda (v) (string-append (valor->texto v) "|"))
+                (list (valor-entero 42) (valor-flotante 2.5) (valor-cadena "hola")
+                      (valor-caracter #\a) (valor-booleano #f) (valor-unit)))))
+  "42|2.5|hola|a|false|unit|")
+(prueba-directa-error "aplicar-clausura con argumentos de menos"
+  (lambda ()
+    (aplicar-clausura (eval-proc '(a b) (lit-exp 1) (ambiente-vacio)) (list (valor-entero 1))))
+  "llegaron 1")
+(prueba-directa-error "eval-apply con un operador que no es procedimiento"
+  (lambda () (eval-apply (lit-exp 5) '() (ambiente-vacio)))
+  "no es un procedimiento")
+
+;; Con gramática: pasan cuando value-of llame a eval-let, eval-proc,
+;; eval-apply y eval-letrec (y la gramática tenga var-exp, let, proc, apply
+;; y letrec). Si la sintaxis de letrec con varios procedimientos es otra,
+;; se ajusta el texto de la prueba 4.
+(prueba "1. let y ambiente"
+  "let a = 1, b = 2 in +(a, b) end" "3")
+(prueba "2. las ligaduras de un let no se ven entre sí"
+  "let x = 1 in let x = 10, y = x in +(x, y) end end" "11")
+(prueba "3. la clausura usa el ambiente donde se creó"
+  "let x = 5 in let f = proc (y: int) +(x, y) end in let x = 100 in apply f (1) end end end" "6")
+(prueba "4. letrec con recursión mutua"
+  "letrec bool par (n: int) = if ==(n, 0) then true else apply impar (-(n, 1)) end,
+          bool impar (n: int) = if ==(n, 0) then false else apply par (-(n, 1)) end
+   in apply par (10) end" "true")
+(prueba "5. letrec con recursión simple"
+  "letrec int fact (n: int) = if ==(n, 0) then 1 else *(n, apply fact (-(n, 1))) end
+   in apply fact (5) end" "120")
+(prueba-rechazo "variable que no existe" "let a = 1 in b end")
+(prueba-rechazo "apply de algo que no es procedimiento" "apply 5 (1)")
+(prueba-rechazo "apply con argumentos de más"
+  "let f = proc (x: int) x end in apply f (1, 2) end")
+
 ;;; ==========================================================
 ;;; Segunda entrega: transacciones, registros y tipos
 ;;; ==========================================================
