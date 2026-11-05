@@ -25,8 +25,15 @@
 
 (define especificacion-lexica
   '((espacio (whitespace) skip)
+    (comentario-linea ("//" (arbno (not #\newline))) skip)
+    (comentario-bloque ("#|" (arbno (not #\|)) "|#") skip)
+    (identificador (letter (arbno (or letter digit "-" "_" "?"))) symbol)
     (numero (digit (arbno digit)) number)
-    (identificador (letter (arbno (or letter digit "-" "_" "?"))) symbol)))
+    (numero ("-" digit (arbno digit)) number)
+    (flotante (digit (arbno digit) "." digit (arbno digit)) number)
+    (flotante ("-" digit (arbno digit) "." digit (arbno digit)) number)
+    (cadena ("\"" (arbno (not #\")) "\"") string)
+    (caracter ("'" any "'") string)))
 
 ;;; ==========================================================
 ;;; 2. Especificación gramatical
