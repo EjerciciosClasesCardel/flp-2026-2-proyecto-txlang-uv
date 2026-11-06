@@ -42,8 +42,77 @@
 ;; expresión y primitiva. Los nombres de las variantes los escoge el grupo.
 
 (define especificacion-gramatical
-  '((programa (expresion) un-programa)
-    (expresion (numero) lit-exp)))
+  '((programa ((arbno decl-registro) expresion) un-programa)
+
+    (decl-registro
+     ("record" identificador "{"
+      (separated-list identificador ":" tipo ",") "}")
+     a-record)
+
+    (tipo ("int") int-tipo)
+    (tipo ("float") float-tipo)
+    (tipo ("bool") bool-tipo)
+    (tipo ("string") string-tipo)
+    (tipo ("char") char-tipo)
+    (tipo ("unit") unit-tipo)
+    (tipo ("ref" "(" tipo ")") ref-tipo)
+    (tipo ("(" (separated-list tipo ",") "->" tipo ")") proc-tipo)
+    (tipo (identificador) registro-tipo)
+
+    (expresion (numero) lit-exp)
+    (expresion (flotante) flotante-exp)
+    (expresion (cadena) cadena-exp)
+    (expresion (caracter) caracter-exp)
+    (expresion ("true") true-exp)
+    (expresion ("false") false-exp)
+    (expresion ("unit") unit-exp)
+    (expresion (identificador) var-exp)
+    (expresion ("let" (separated-list identificador "=" expresion ",")
+                "in" expresion "end") let-exp)
+    (expresion ("ref" "(" expresion ")") ref-exp)
+    (expresion ("deref" "(" expresion ")") deref-exp)
+    (expresion ("set" expresion ":=" expresion) set-exp)
+    (expresion ("begin" expresion (arbno ";" expresion) "end") begin-exp)
+    (expresion ("if" expresion "then" expresion
+                (arbno "elif" expresion "then" expresion)
+                "else" expresion "end") if-exp)
+    (expresion ("while" expresion "do" expresion "end") while-exp)
+    (expresion (primitiva "(" (separated-list expresion ",") ")") prim-exp)
+    (expresion ("proc" "(" (separated-list identificador ":" tipo ",") ")"
+                expresion "end") proc-exp)
+    (expresion ("apply" expresion "(" (separated-list expresion ",") ")")
+               apply-exp)
+    (expresion ("letrec"
+                (arbno tipo identificador
+                       "(" (separated-list identificador ":" tipo ",") ")"
+                       "=" expresion)
+                "in" expresion "end") letrec-exp)
+    (expresion ("atomic" expresion "onfail" "(" identificador ")" expresion "end")
+               atomic-exp)
+    (expresion ("abort" "(" expresion ")") abort-exp)
+    (expresion ("new" identificador "{"
+                (separated-list identificador "=" expresion ",") "}") new-exp)
+    (expresion ("field" "(" expresion "," identificador ")") field-exp)
+
+    (primitiva ("+") suma-prim)
+    (primitiva ("-") resta-prim)
+    (primitiva ("*") mult-prim)
+    (primitiva ("/") div-prim)
+    (primitiva ("%") mod-prim)
+    (primitiva (">") mayor-prim)
+    (primitiva ("<") menor-prim)
+    (primitiva (">=") mayor-igual-prim)
+    (primitiva ("<=") menor-igual-prim)
+    (primitiva ("==") igual-prim)
+    (primitiva ("!=") diferente-prim)
+    (primitiva ("and") and-prim)
+    (primitiva ("or") or-prim)
+    (primitiva ("not") not-prim)
+    (primitiva ("concat") concat-prim)
+    (primitiva ("length") length-prim)
+    (primitiva ("to-string") to-string-prim)
+    (primitiva ("to-number") to-number-prim)
+    (primitiva ("print") print-prim)))
 
 (sllgen:make-define-datatypes especificacion-lexica especificacion-gramatical)
 
@@ -59,15 +128,67 @@
 ;;; 3. Unparse: del árbol de sintaxis abstracta al texto
 ;;; ==========================================================
 
+;; une una lista de textos poniendo un separador entre cada uno
+(define unir
+  (lambda (lista separador)
+    (cond ((null? lista) "")((null? (cdr lista)) (car lista))
+          (else (string-append (car lista) separador(unir (cdr lista) separador))))))
+
 (define unparse
   (lambda (pgm)
     (cases programa pgm
-      (un-programa (cuerpo) (unparse-expresion cuerpo)))))
+      (un-programa (decls cuerpo)
+        (string-append
+         (apply string-append
+                (map (lambda (d) (string-append (unparse-decl d) "\n")) decls))
+         (unparse-expresion cuerpo))))))
 
-(define unparse-expresion
-  (lambda (exp)
-    (cases expresion exp
-      (lit-exp (n) (number->string n)))))
+(define unparse-decl
+  (lambda (decl)
+    (cases decl-registro decl
+      (a-record (nombre campos tipos)
+        (string-append "record " (symbol->string nombre) " { "(unparse-params campos tipos) " }")))))
+
+;; arma "x: int, y: bool"
+(define unparse-params
+  (lambda (ids tipos)
+    (unir (map (lambda (id un-tipo)
+                 (string-append (symbol->string id) ": " (unparse-tipo un-tipo)))ids tipos)", ")))
+
+(define unparse-tipo
+  (lambda (un-tipo)
+    (cases tipo un-tipo
+      (int-tipo () "int")
+      (float-tipo () "float")
+      (bool-tipo () "bool")
+      (string-tipo () "string")
+      (char-tipo () "char")
+      (unit-tipo () "unit")
+      (ref-tipo (t) (string-append "ref(" (unparse-tipo t) ")"))
+      (proc-tipo (tipos-args tipo-ret)
+        (string-append "(" (unir (map unparse-tipo tipos-args) ", ")" -> " (unparse-tipo tipo-ret) ")"))
+      (registro-tipo (id) (symbol->string id)))))
+
+(define unparse-prim
+  (lambda (prim)
+    (cases primitiva prim
+      (suma-prim () "+") (resta-prim () "-") (mult-prim () "*")
+      (div-prim () "/") (mod-prim () "%")
+      (mayor-prim () ">") (menor-prim () "<")
+      (mayor-igual-prim () ">=") (menor-igual-prim () "<=")
+      (igual-prim () "==") (diferente-prim () "!=")
+      (and-prim () "and") (or-prim () "or") (not-prim () "not")
+      (concat-prim () "concat") (length-prim () "length")
+      (to-string-prim () "to-string") (to-number-prim () "to-number")
+      (print-prim () "print"))))
+
+;; arma "a = e1, b = e2" (sirve para let y para new)
+(define unparse-ligaduras
+  (lambda (ids exps)
+    (unir (map (lambda (id e)
+                 (string-append (symbol->string id) " = " (unparse-expresion e)))ids exps)", ")))
+
+
 
 ;;; ==========================================================
 ;;; 4. TAD ambiente
