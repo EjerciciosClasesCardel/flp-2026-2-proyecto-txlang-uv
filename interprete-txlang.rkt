@@ -43,7 +43,25 @@
 
 (define especificacion-gramatical
   '((programa (expresion) un-programa)
-    (expresion (numero) lit-exp)))
+
+    (tipo ("int") int-tipo)
+    (tipo ("float") float-tipo)
+    (tipo ("bool") bool-tipo)
+    (tipo ("string") string-tipo)
+    (tipo ("char") char-tipo)
+    (tipo ("unit") unit-tipo)
+    (tipo ("ref" "(" tipo ")") ref-tipo)
+    (tipo ("(" (separated-list tipo ",") "->" tipo ")") proc-tipo)
+    (tipo (identificador) registro-tipo)
+
+    (expresion (numero) lit-exp)
+    (expresion (flotante) flotante-exp)
+    (expresion (cadena) cadena-exp)
+    (expresion (caracter) caracter-exp)
+    (expresion ("true") true-exp)
+    (expresion ("false") false-exp)
+    (expresion ("unit") unit-exp)
+    (expresion (identificador) var-exp)))
 
 (sllgen:make-define-datatypes especificacion-lexica especificacion-gramatical)
 
