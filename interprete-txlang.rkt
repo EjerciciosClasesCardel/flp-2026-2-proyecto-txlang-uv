@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Aura Maria Pelaez Luna,202459422-Valentina Valencia Lopez,202459626-Juan Felipe Aristízabal,2459364
+;Autores: Nombre1 Codigo1, Nombre2 Codigo2, ...
 
 #|
   Interpretador de TxLang-UV.
@@ -291,55 +291,48 @@
 ;; En la primera entrega las escrituras son definitivas; en la segunda el
 ;; almacén lleva el registro que permite revertir un bloque atomic. Conviene
 ;; diseñar la interfaz desde ahora pensando en eso.
+;; una referencia es la posicion de una celda en el almacen
+(define-datatype referencia referencia?
+  (a-ref (pos integer?)))
 
-;;; ==========================================================
-;;; 6. Valores expresados
-;;; ==========================================================
-;; Un define-datatype con los valores del lenguaje y valor->texto, que es
-;; lo que imprime correr.
+;; el almacen es una lista: la posicion de cada valor es su referencia
+(define el-almacen 'sin-inicializar)
 
-(define valor->texto
-  (lambda (v)
-    (cond ((number? v) (number->string v))
-          (else (eopl:error 'valor->texto "no sé escribir el valor ~s" v)))))
+(define initialize-store!
+  (lambda ()
+    (set! el-almacen '())))
 
-;;; ==========================================================
-;;; 7. Chequeador de tipos (segunda entrega)
-;;; ==========================================================
-;; Recibe el programa y lo devuelve si está bien tipado; si no, aborta con
-;; eopl:error antes de que se evalúe. Mientras no exista, deja pasar todo.
-
-(define chequear-programa
-  (lambda (pgm) pgm))
-
-;; Tipo del programa, escrito como texto: "int", "ref(bool)", "(int -> int)".
-(define tipo-del-programa
-  (lambda (texto)
-    (eopl:error 'tipo-del-programa "el chequeador de tipos llega en la segunda entrega")))
-
-;;; ==========================================================
-;;; 8. Interpretador
-;;; ==========================================================
-
-(define value-of
-  (lambda (exp amb)
-    (cases expresion exp
-      (lit-exp (n) n))))
-
-;;; ==========================================================
-;;; 9. Interfaz
-;;; ==========================================================
-
-(define interpretar
-  (lambda (texto)
-    (let ((pgm (scan&parse texto)))
+;; newref: agrega una celda al final y devuelve su referencia
+(define newref
+  (lambda (valor)
+    (let ((siguiente (length el-almacen)))
       (begin
-        (chequear-programa pgm)
-        (cases programa pgm
-          (un-programa (cuerpo) (value-of cuerpo 'ambiente-vacio)))))))
+        (set! el-almacen (append el-almacen (list valor)))
+        (a-ref siguiente)))))
 
-;; Lo que usan las baterías: un texto de TxLang-UV y el valor como texto.
-(define correr
-  (lambda (texto) (valor->texto (interpretar texto))))
+;; deref: lee el contenido de la celda
+(define deref
+  (lambda (ref)
+    (cases referencia ref
+      (a-ref (pos)
+        (if (< pos (length el-almacen))
+            (list-ref el-almacen pos)
+            (eopl:error 'deref "La referencia ~s no apunta a ninguna celda del almacen" pos))))))
 
-(provide (all-defined-out))
+;; setref!: escribe en la celda
+;; (en la entrega 2 aqui se guarda el valor anterior para las transacciones)
+(define setref!
+  (lambda (ref valor)
+    (cases referencia ref
+      (a-ref (pos)
+        (set! el-almacen (reemplazar-celda el-almacen pos valor))))))
+
+;; arma una lista igual a la de celdas pero con valor en la posicion pos
+(define reemplazar-celda
+  (lambda (celdas pos valor)
+    (cond
+      ((null? celdas)
+       (eopl:error 'setref! "La referencia no apunta a ninguna celda del almacen"))
+      ((= pos 0) (cons valor (cdr celdas)))
+      (else (cons (car celdas) (reemplazar-celda (cdr celdas) (- pos 1) valor))))))
+
