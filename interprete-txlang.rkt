@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Nombre1 Codigo1, Nombre2 Codigo2, ...
+;Autores: Aura Maria Pelaez Luna 202459422, Valentina Valencia Lopez 202459626, Juan Felipe Aristizabal 2459364-3743
 
 #|
   Interpretador de TxLang-UV.
@@ -368,3 +368,56 @@
           ((char? v) (string v))
           (else (valor->texto v)))))
 
+;;; ==========================================================
+;;; 8. Interpretador
+;;; ==========================================================
+
+
+(define evaluar-programa
+  (lambda (pgm)
+    (begin
+      (initialize-store!)
+      (cases programa pgm
+        (un-programa (decls cuerpo)
+          (value-of cuerpo (ambiente-vacio)))))))
+
+;; las cadenas y caracteres vienen con comillas desde el scanner
+(define quitar-comillas
+  (lambda (texto)
+    (substring texto 1 (- (string-length texto) 1))))
+
+;; quien es solo para el mensaje de error (deref o setref)
+(define como-referencia
+  (lambda (valor quien)
+    (if (referencia? valor)
+        valor
+        (eopl:error quien "Se esperaba una referencia y se obtuvo: ~s" valor))))
+
+;; evalua una lista de expresiones de izquierda a derecha
+(define evaluar-lista
+  (lambda (exps amb)
+    (map (lambda (e) (value-of e amb)) exps)))
+
+(define value-of
+  (lambda (exp amb)
+    (cases expresion exp
+      (lit-exp (n) n)
+      (flotante-exp (f) f)
+      (cadena-exp (c) (quitar-comillas c))
+      (caracter-exp (c) (string-ref c 1))
+      (true-exp () #t)
+      (false-exp () #f)
+      (unit-exp () valor-unit)
+      (var-exp (id) (apply-env amb id))
+      ;; las ligaduras se evaluan en el ambiente de afuera
+      (let-exp (ids exps body)
+        (value-of body (ambiente-extendido ids (evaluar-lista exps amb) amb)))
+      (ref-exp (e) (newref (value-of e amb)))
+      (deref-exp (e)
+        (deref (como-referencia (value-of e amb) 'deref)))
+      (set-exp (e1 e2)
+        (let ((ref (como-referencia (value-of e1 amb) 'setref)))
+          (let ((valor (value-of e2 amb)))
+            (begin (setref! ref valor)
+                   valor-unit))))
+      (else (eopl:error 'value-of "Construccion aun no implementada")))))
