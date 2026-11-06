@@ -246,6 +246,43 @@
 ;;; 4. TAD ambiente
 ;;; ==========================================================
 ;; Liga identificadores a valores. Su interfaz va aparte de la del almacén.
+(define-datatype ambiente ambiente?
+  (ambiente-vacio)
+  (ambiente-extendido
+   (lids (list-of symbol?))
+   (lvalue list?)
+   (old-env ambiente?))
+  ;; marco de un letrec: guarda los ingredientes de las clausuras, no las clausuras
+  (ambiente-extendido-recursivo
+   (procnames (list-of symbol?))
+   (idss (list-of (list-of symbol?)))
+   (cuerpos (list-of expresion?))
+   (old-env ambiente?)))
+
+(define apply-env
+  (lambda (env var)
+    (cases ambiente env
+      (ambiente-vacio ()
+        (eopl:error 'apply-env "No se encuentra ~s" var))
+      (ambiente-extendido (lids lvalue old-env)
+        (letrec
+            ((buscar-variable
+              (lambda (lids lvalue)
+                (cond
+                  ((null? lids) (apply-env old-env var))((equal? (car lids) var) (car lvalue))
+                  (else (buscar-variable (cdr lids) (cdr lvalue)))))))
+          (buscar-variable lids lvalue)))
+      (ambiente-extendido-recursivo (procnames idss cuerpos old-env)
+        (letrec
+            ((buscar-variable
+              (lambda (procnames idss cuerpos)
+                (cond
+                  ((null? procnames) (apply-env old-env var))
+                  ;; la clausura se arma con env (el marco recursivo), no con old-env
+                  ((equal? (car procnames) var)
+                   (closure (car idss) (car cuerpos) env))
+                  (else (buscar-variable (cdr procnames) (cdr idss) (cdr cuerpos)))))))
+          (buscar-variable procnames idss cuerpos))))))
 
 ;;; ==========================================================
 ;;; 5. TAD almacén
