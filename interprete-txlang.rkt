@@ -336,3 +336,35 @@
       ((= pos 0) (cons valor (cdr celdas)))
       (else (cons (car celdas) (reemplazar-celda (cdr celdas) (- pos 1) valor))))))
 
+;;; ==========================================================
+;;; 6. Valores expresados
+;;; ==========================================================
+;; Un define-datatype con los valores del lenguaje y valor->texto, que es
+;; lo que imprime correr.
+
+;; el valor unit lo represento con un simbolo
+(define valor-unit 'unit)
+
+;; una clausura guarda parametros, cuerpo y el ambiente donde se creo
+(define-datatype procval procval?
+  (closure (ids list?) (body expresion?) (env ambiente?)))
+
+;; texto con el que correr muestra un valor
+(define valor->texto
+  (lambda (v)
+    (cond ((number? v) (number->string v))
+          ((string? v) (string-append "\"" v "\""))
+          ((char? v) (string-append "'" (string v) "'"))
+          ((boolean? v) (if v "true" "false"))
+          ((eq? v valor-unit) "unit")
+          ((referencia? v) "<ref>")
+          ((procval? v) "<proc>")
+          (else "<valor>"))))
+
+;; texto sin comillas (lo usan print y to-string)
+(define valor->cadena
+  (lambda (v)
+    (cond ((string? v) v)
+          ((char? v) (string v))
+          (else (valor->texto v)))))
+
