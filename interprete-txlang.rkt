@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Nombre1 Codigo1, Nombre2 Codigo2, ...
+;Autores: Aura Maria Pelaez Luna,202459422-Valentina Valencia Lopez,202459626-Juan Felipe Aristízabal,2459364
 
 #|
   Interpretador de TxLang-UV.
@@ -188,7 +188,59 @@
     (unir (map (lambda (id e)
                  (string-append (symbol->string id) " = " (unparse-expresion e)))ids exps)", ")))
 
-
+(define unparse-expresion
+  (lambda (exp)
+    (cases expresion exp
+      (lit-exp (n) (number->string n))
+      (flotante-exp (f) (number->string f))
+      (cadena-exp (c) c)
+      (caracter-exp (c) c)
+      (true-exp () "true")
+      (false-exp () "false")
+      (unit-exp () "unit")
+      (var-exp (id) (symbol->string id))
+      (let-exp (ids exps body)
+        (string-append "let " (unparse-ligaduras ids exps)" in " (unparse-expresion body) " end"))
+      (ref-exp (e) (string-append "ref(" (unparse-expresion e) ")"))
+      (deref-exp (e) (string-append "deref(" (unparse-expresion e) ")"))
+      (set-exp (e1 e2)
+        (string-append "set " (unparse-expresion e1) " := " (unparse-expresion e2)))
+      (begin-exp (primera resto)
+        (string-append "begin "(unir (map unparse-expresion (cons primera resto)) "; ")" end"))
+      (if-exp (prueba entonces pruebas-elif entonces-elif sino)
+        (string-append
+         "if " (unparse-expresion prueba) " then " (unparse-expresion entonces)
+         (apply string-append
+                (map (lambda (p r)
+                       (string-append " elif " (unparse-expresion p)" then " (unparse-expresion r)))
+                     pruebas-elif entonces-elif))" else " (unparse-expresion sino) " end"))
+      (while-exp (condicion body)
+        (string-append "while " (unparse-expresion condicion)" do " (unparse-expresion body) " end"))
+      (prim-exp (prim args)
+        (string-append (unparse-prim prim)"(" (unir (map unparse-expresion args) ", ") ")"))
+      (proc-exp (ids tipos body)
+        (string-append "proc (" (unparse-params ids tipos) ") "(unparse-expresion body) " end"))
+      (apply-exp (rator rands)
+        (string-append "apply " (unparse-expresion rator)"(" (unir (map unparse-expresion rands) ", ") ")"))
+      (letrec-exp (tipos-ret nombres idss tiposs cuerpos body)
+        (string-append
+         "letrec "
+         (unir (map (lambda (tr nombre ids tipos c)
+                      (string-append (unparse-tipo tr) " " (symbol->string nombre)
+                                     "(" (unparse-params ids tipos) ") = "
+                                     (unparse-expresion c)))
+                    tipos-ret nombres idss tiposs cuerpos)
+               " ")
+         " in " (unparse-expresion body) " end"))
+      (atomic-exp (body id si-falla)
+        (string-append "atomic " (unparse-expresion body)" onfail (" (symbol->string id) ") "
+                       (unparse-expresion si-falla) " end"))
+      (abort-exp (e) (string-append "abort(" (unparse-expresion e) ")"))
+      (new-exp (nombre ids exps)
+        (string-append "new " (symbol->string nombre) " { "
+                       (unparse-ligaduras ids exps) " }"))
+      (field-exp (e id)
+        (string-append "field(" (unparse-expresion e) ", " (symbol->string id) ")")))))
 
 ;;; ==========================================================
 ;;; 4. TAD ambiente
