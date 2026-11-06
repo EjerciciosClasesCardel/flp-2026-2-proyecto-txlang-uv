@@ -42,7 +42,12 @@
 ;; expresión y primitiva. Los nombres de las variantes los escoge el grupo.
 
 (define especificacion-gramatical
-  '((programa (expresion) un-programa)
+  '((programa ((arbno decl-registro) expresion) un-programa)
+
+    (decl-registro
+     ("record" identificador "{"
+      (separated-list identificador ":" tipo ",") "}")
+     a-record)
 
     (tipo ("int") int-tipo)
     (tipo ("float") float-tipo)
@@ -73,6 +78,21 @@
                 "else" expresion "end") if-exp)
     (expresion ("while" expresion "do" expresion "end") while-exp)
     (expresion (primitiva "(" (separated-list expresion ",") ")") prim-exp)
+    (expresion ("proc" "(" (separated-list identificador ":" tipo ",") ")"
+                expresion "end") proc-exp)
+    (expresion ("apply" expresion "(" (separated-list expresion ",") ")")
+               apply-exp)
+    (expresion ("letrec"
+                (arbno tipo identificador
+                       "(" (separated-list identificador ":" tipo ",") ")"
+                       "=" expresion)
+                "in" expresion "end") letrec-exp)
+    (expresion ("atomic" expresion "onfail" "(" identificador ")" expresion "end")
+               atomic-exp)
+    (expresion ("abort" "(" expresion ")") abort-exp)
+    (expresion ("new" identificador "{"
+                (separated-list identificador "=" expresion ",") "}") new-exp)
+    (expresion ("field" "(" expresion "," identificador ")") field-exp)
 
     (primitiva ("+") suma-prim)
     (primitiva ("-") resta-prim)
