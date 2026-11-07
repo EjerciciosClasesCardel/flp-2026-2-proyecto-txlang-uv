@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Aura Maria Pelaez Luna 202459422, Valentina Valencia Lopez 202459626, Juan Felipe Aristizabal 2459364-3743
+;Autores: Aura Maria Pelaez Luna,202459422-Valentina Valencia Lopez,202459626-Juan Felipe Aristízabal,2459364
 
 #|
   Interpretador de TxLang-UV.
@@ -369,9 +369,24 @@
           (else (valor->texto v)))))
 
 ;;; ==========================================================
+;;; 7. Chequeador de tipos (segunda entrega)
+;;; ==========================================================
+;; Recibe el programa y lo devuelve si está bien tipado; si no, aborta con
+;; eopl:error antes de que se evalúe. Mientras no exista, deja pasar todo.
+
+(define chequear-programa
+  (lambda (pgm) pgm))
+
+;; Tipo del programa, escrito como texto: "int", "ref(bool)", "(int -> int)".
+(define tipo-del-programa
+  (lambda (texto)
+    (eopl:error 'tipo-del-programa "el chequeador de tipos llega en la segunda entrega")))
+
+
+
+;;; ==========================================================
 ;;; 8. Interpretador
 ;;; ==========================================================
-
 
 (define evaluar-programa
   (lambda (pgm)
@@ -393,16 +408,16 @@
         valor
         (eopl:error quien "Se esperaba una referencia y se obtuvo: ~s" valor))))
 
-;; evalua una lista de expresiones de izquierda a derecha
-(define evaluar-lista
-  (lambda (exps amb)
-    (map (lambda (e) (value-of e amb)) exps)))
-
 (define exigir-booleano
   (lambda (valor)
     (if (boolean? valor)
         valor
         (eopl:error 'if "La prueba debe ser booleana y se obtuvo: ~s" valor))))
+
+;; evalua una lista de expresiones de izquierda a derecha
+(define evaluar-lista
+  (lambda (exps amb)
+    (map (lambda (e) (value-of e amb)) exps)))
 
 ;; begin: evalua todas y devuelve la ultima
 (define evaluar-secuencia
@@ -461,8 +476,7 @@
         (evaluar-if prueba entonces pruebas-elif entonces-elif sino amb))
       (while-exp (condicion body)
         (letrec ((ciclo (lambda ()
-                          (if (exigir-booleano (value-of condicion amb))
-                              (begin (value-of body amb) (ciclo))
+                          (if (exigir-booleano (value-of condicion amb))(begin (value-of body amb) (ciclo))
                               valor-unit))))
           (ciclo)))
       (prim-exp (prim args)
@@ -476,3 +490,109 @@
       ;; atomic, abort, new y field son de la segunda entrega
       (else (eopl:error 'value-of
                         "Esta construccion se implementa en la segunda entrega")))))
+
+;; ---------- primitivas ----------
+
+;; revisa que lleguen dos numeros y devuelve la lista de argumentos
+(define dos-numeros
+  (lambda (nombre args)
+    (if (and (= (length args) 2)
+             (number? (car args))
+             (number? (cadr args)))
+        args
+        (eopl:error nombre "Se esperaban dos numeros y llegaron: ~s" args))))
+
+(define dos-booleanos
+  (lambda (nombre args)
+    (if (and (= (length args) 2)
+             (boolean? (car args))
+             (boolean? (cadr args)))
+        args
+        (eopl:error nombre "Se esperaban dos booleanos y llegaron: ~s" args))))
+
+(define un-argumento
+  (lambda (nombre args)
+    (if (= (length args) 1)
+        (car args)
+        (eopl:error nombre "Se esperaba un solo argumento y llegaron: ~s" args))))
+
+(define todas-cadenas?
+  (lambda (lista)
+    (cond ((null? lista) #t)
+          ((string? (car lista)) (todas-cadenas? (cdr lista)))
+          (else #f))))
+
+;; los numeros se comparan con = y lo demas con equal?
+(define son-iguales?
+  (lambda (a b)
+    (if (and (number? a) (number? b))
+        (= a b)
+        (equal? a b))))
+
+;; evaluar-primitiva: Primitiva x Lista(Valor) -> Valor
+(define evaluar-primitiva
+  (lambda (prim args)
+    (cases primitiva prim
+      (suma-prim () (apply + (dos-numeros '+ args)))
+      (resta-prim () (apply - (dos-numeros '- args)))
+      (mult-prim () (apply * (dos-numeros '* args)))
+      ;; entre enteros / es division entera
+      (div-prim ()
+        (let ((a (car (dos-numeros '/ args)))
+              (b (cadr args)))
+          (cond ((zero? b) (eopl:error '/ "Division por cero"))
+                ((and (exact? a) (exact? b)) (quotient a b))
+                (else (/ a b)))))
+      ;; % solo acepta enteros
+      (mod-prim ()
+        (let ((a (car (dos-numeros '% args)))
+              (b (cadr args)))
+          (cond ((not (and (exact? a) (exact? b)))
+                 (eopl:error '% "% solo acepta enteros"))
+                ((zero? b) (eopl:error '% "Division por cero"))
+                (else (modulo a b)))))
+      (mayor-prim () (apply > (dos-numeros '> args)))
+      (menor-prim () (apply < (dos-numeros '< args)))
+      (mayor-igual-prim () (apply >= (dos-numeros '>= args)))
+      (menor-igual-prim () (apply <= (dos-numeros '<= args)))
+      (igual-prim ()
+        (if (= (length args) 2)
+            (son-iguales? (car args) (cadr args))
+            (eopl:error '== "Se esperaban dos argumentos")))
+      (diferente-prim ()
+        (if (= (length args) 2)
+            (not (son-iguales? (car args) (cadr args)))
+            (eopl:error '!= "Se esperaban dos argumentos")))
+      (and-prim ()
+        (let ((bools (dos-booleanos 'and args)))
+          (and (car bools) (cadr bools))))
+      (or-prim ()
+        (let ((bools (dos-booleanos 'or args)))
+          (or (car bools) (cadr bools))))
+      (not-prim ()
+        (let ((b (un-argumento 'not args)))
+          (if (boolean? b)
+              (not b)
+              (eopl:error 'not "Se esperaba un booleano: ~s" b))))
+      (concat-prim ()
+        (if (todas-cadenas? args)
+            (apply string-append args)
+            (eopl:error 'concat "concat exige cadenas: ~s" args)))
+      (length-prim ()
+        (let ((c (un-argumento 'length args)))
+          (if (string? c)
+              (string-length c)
+              (eopl:error 'length "Se esperaba una cadena: ~s" c))))
+      (to-string-prim ()
+        (valor->cadena (un-argumento 'to-string args)))
+      (to-number-prim ()
+        (let ((c (un-argumento 'to-number args)))
+          (if (and (string? c) (string->number c))
+              (string->number c)
+              (eopl:error 'to-number "No se puede convertir a numero: ~s" c))))
+      ;; print escribe en consola y devuelve unit
+      (print-prim ()
+        (begin (display (valor->cadena (un-argumento 'print args)))
+               (newline)
+               valor-unit)))))
+
