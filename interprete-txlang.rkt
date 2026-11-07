@@ -398,6 +398,31 @@
   (lambda (exps amb)
     (map (lambda (e) (value-of e amb)) exps)))
 
+(define exigir-booleano
+  (lambda (valor)
+    (if (boolean? valor)
+        valor
+        (eopl:error 'if "La prueba debe ser booleana y se obtuvo: ~s" valor))))
+
+;; begin: evalua todas y devuelve la ultima
+(define evaluar-secuencia
+  (lambda (primera resto amb)
+    (let ((valor (value-of primera amb)))
+      (if (null? resto)
+          valor
+          (evaluar-secuencia (car resto) (cdr resto) amb)))))
+
+;; if con sus elif: va probando una prueba tras otra
+(define evaluar-if
+  (lambda (prueba entonces pruebas-elif entonces-elif sino amb)
+    (if (exigir-booleano (value-of prueba amb))
+        (value-of entonces amb)
+        (if (null? pruebas-elif)
+            (value-of sino amb)
+            (evaluar-if (car pruebas-elif) (car entonces-elif)
+                        (cdr pruebas-elif) (cdr entonces-elif)
+                        sino amb)))))
+
 (define value-of
   (lambda (exp amb)
     (cases expresion exp
@@ -420,4 +445,15 @@
           (let ((valor (value-of e2 amb)))
             (begin (setref! ref valor)
                    valor-unit))))
+      (begin-exp (primera resto) (evaluar-secuencia primera resto amb))
+      (if-exp (prueba entonces pruebas-elif entonces-elif sino)
+        (evaluar-if prueba entonces pruebas-elif entonces-elif sino amb))
+      (while-exp (condicion body)
+        (letrec ((ciclo (lambda ()
+                          (if (exigir-booleano (value-of condicion amb))
+                              (begin (value-of body amb) (ciclo))
+                              valor-unit))))
+          (ciclo)))
+      (prim-exp (prim args)
+        (evaluar-primitiva prim (evaluar-lista args amb)))
       (else (eopl:error 'value-of "Construccion aun no implementada")))))
