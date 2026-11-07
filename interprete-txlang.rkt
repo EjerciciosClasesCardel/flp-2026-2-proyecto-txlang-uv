@@ -423,6 +423,17 @@
                         (cdr pruebas-elif) (cdr entonces-elif)
                         sino amb)))))
 
+(define aplicar-procedimiento
+  (lambda (proc args)
+    (if (procval? proc)
+        (cases procval proc
+          (closure (ids body env)
+            (if (= (length ids) (length args))
+                (value-of body (ambiente-extendido ids args env))
+                (eopl:error 'apply "Se esperaban ~s argumentos y llegaron ~s"
+                            (length ids) (length args)))))
+        (eopl:error 'apply "Se esperaba un procedimiento y se obtuvo: ~s" proc))))
+
 (define value-of
   (lambda (exp amb)
     (cases expresion exp
@@ -456,4 +467,12 @@
           (ciclo)))
       (prim-exp (prim args)
         (evaluar-primitiva prim (evaluar-lista args amb)))
-      (else (eopl:error 'value-of "Construccion aun no implementada")))))
+      (proc-exp (ids tipos body) (closure ids body amb))
+      (apply-exp (rator rands)
+        (let ((proc (value-of rator amb)))
+          (aplicar-procedimiento proc (evaluar-lista rands amb))))
+      (letrec-exp (tipos-ret procnames idss tiposs cuerpos body)
+        (value-of body (ambiente-extendido-recursivo procnames idss cuerpos amb)))
+      ;; atomic, abort, new y field son de la segunda entrega
+      (else (eopl:error 'value-of
+                        "Esta construccion se implementa en la segunda entrega")))))
