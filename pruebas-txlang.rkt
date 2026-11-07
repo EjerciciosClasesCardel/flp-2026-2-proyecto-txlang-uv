@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Juan Felipe Aristizabal 2459364-3743
+;Autores: Aura Maria Pelaez Luna,202459422-Valentina Valencia Lopez,202459626-Juan Felipe Aristízabal,2459364
 
 #|
   Batería de pruebas del interpretador de TxLang-UV.
@@ -83,19 +83,30 @@
 ;; (prueba "let y suma" "let a = 1, b = 2 in +(a, b) end" "3")
 ;; (prueba "una celda" "let c = ref(0) in begin set c := 5; deref(c) end end" "5")
 ;; (prueba-rechazo "if con prueba no booleana" "if 1 then 2 else 3 end")
+;; literales
+(prueba "entero negativo" "-7" "-7")
+(prueba "flotante" "3.14" "3.14")
+(prueba "cadena" "\"hola\"" "\"hola\"")
+(prueba "caracter" "'a'" "'a'")
+(prueba "booleano" "true" "true")
+(prueba "unit" "unit" "unit")
+;; comentarios
+(prueba "comentario de linea" "// hola\n+(1, 2)" "3")
+(prueba "comentario de bloque" "#| un bloque |# +(1, 2)" "3")
+;; primitivas
+(prueba "aritmetica" "*(-(10, 4), 2)" "12")
+(prueba "division entera" "/(7, 2)" "3")
+(prueba "division flotante" "/(7.0, 2.0)" "3.5")
+(prueba "modulo" "%(7, 2)" "1")
+(prueba "relacional" "<(1, 2)" "true")
+(prueba "mayor o igual" ">=(2, 2)" "true")
+(prueba "diferente" "!=(1, 2)" "true")
+(prueba "igualdad de cadenas" "==(\"a\", \"a\")" "true")
+(prueba "booleanas" "and(true, not(false))" "true")
+(prueba "or" "or(false, false)" "false")
+(prueba "concat" "concat(\"ab\", \"cd\")" "\"abcd\"")
+(prueba "length" "length(\"hola\")" "4")
 
-;;; ==========================================================
-;;; Segunda entrega: transacciones, registros y tipos
-;;; ==========================================================
-
-(eopl:printf "~%== Segunda entrega ==~%")
-
-;; Agregue aquí las pruebas de la segunda entrega: bloques atomic que
-;; confirman y que revierten, anidamiento, registros, y al menos cinco
-;; programas mal tipados con prueba-rechazo o prueba-tipo. Por ejemplo:
-;;
-;; (prueba-tipo "tipo de un proc" "proc (x: int) x end" "(int -> int)")
-;; (prueba-rechazo "suma de int y bool" "+(1, true)")
 
 ;;; ==========================================================
 ;;; Resumen
