@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Nombre1 Codigo1, Nombre2 Codigo2, ...
+;Autores: Aura Maria Pelaez Luna,202459422-Valentina Valencia Lopez,202459626-Juan Felipe Aristízabal,2459364
 
 #|
   Interpretador de TxLang-UV.
@@ -367,4 +367,232 @@
     (cond ((string? v) v)
           ((char? v) (string v))
           (else (valor->texto v)))))
+
+;;; ==========================================================
+;;; 7. Chequeador de tipos (segunda entrega)
+;;; ==========================================================
+;; Recibe el programa y lo devuelve si está bien tipado; si no, aborta con
+;; eopl:error antes de que se evalúe. Mientras no exista, deja pasar todo.
+
+(define chequear-programa
+  (lambda (pgm) pgm))
+
+;; Tipo del programa, escrito como texto: "int", "ref(bool)", "(int -> int)".
+(define tipo-del-programa
+  (lambda (texto)
+    (eopl:error 'tipo-del-programa "el chequeador de tipos llega en la segunda entrega")))
+
+
+
+;;; ==========================================================
+;;; 8. Interpretador
+;;; ==========================================================
+
+(define evaluar-programa
+  (lambda (pgm)
+    (begin
+      (initialize-store!)
+      (cases programa pgm
+        (un-programa (decls cuerpo)
+          (value-of cuerpo (ambiente-vacio)))))))
+
+;; las cadenas y caracteres vienen con comillas desde el scanner
+(define quitar-comillas
+  (lambda (texto)
+    (substring texto 1 (- (string-length texto) 1))))
+
+;; quien es solo para el mensaje de error (deref o setref)
+(define como-referencia
+  (lambda (valor quien)
+    (if (referencia? valor)
+        valor
+        (eopl:error quien "Se esperaba una referencia y se obtuvo: ~s" valor))))
+
+(define exigir-booleano
+  (lambda (valor)
+    (if (boolean? valor)
+        valor
+        (eopl:error 'if "La prueba debe ser booleana y se obtuvo: ~s" valor))))
+
+;; evalua una lista de expresiones de izquierda a derecha
+(define evaluar-lista
+  (lambda (exps amb)
+    (map (lambda (e) (value-of e amb)) exps)))
+
+;; begin: evalua todas y devuelve la ultima
+(define evaluar-secuencia
+  (lambda (primera resto amb)
+    (let ((valor (value-of primera amb)))
+      (if (null? resto)
+          valor
+          (evaluar-secuencia (car resto) (cdr resto) amb)))))
+
+;; if con sus elif: va probando una prueba tras otra
+(define evaluar-if
+  (lambda (prueba entonces pruebas-elif entonces-elif sino amb)
+    (if (exigir-booleano (value-of prueba amb))
+        (value-of entonces amb)
+        (if (null? pruebas-elif)
+            (value-of sino amb)
+            (evaluar-if (car pruebas-elif) (car entonces-elif)
+                        (cdr pruebas-elif) (cdr entonces-elif)
+                        sino amb)))))
+
+(define aplicar-procedimiento
+  (lambda (proc args)
+    (if (procval? proc)
+        (cases procval proc
+          (closure (ids body env)
+            (if (= (length ids) (length args))
+                (value-of body (ambiente-extendido ids args env))
+                (eopl:error 'apply "Se esperaban ~s argumentos y llegaron ~s"
+                            (length ids) (length args)))))
+        (eopl:error 'apply "Se esperaba un procedimiento y se obtuvo: ~s" proc))))
+
+(define value-of
+  (lambda (exp amb)
+    (cases expresion exp
+      (lit-exp (n) n)
+      (flotante-exp (f) f)
+      (cadena-exp (c) (quitar-comillas c))
+      (caracter-exp (c) (string-ref c 1))
+      (true-exp () #t)
+      (false-exp () #f)
+      (unit-exp () valor-unit)
+      (var-exp (id) (apply-env amb id))
+      ;; las ligaduras se evaluan en el ambiente de afuera
+      (let-exp (ids exps body)
+        (value-of body (ambiente-extendido ids (evaluar-lista exps amb) amb)))
+      (ref-exp (e) (newref (value-of e amb)))
+      (deref-exp (e)
+        (deref (como-referencia (value-of e amb) 'deref)))
+      (set-exp (e1 e2)
+        (let ((ref (como-referencia (value-of e1 amb) 'setref)))
+          (let ((valor (value-of e2 amb)))
+            (begin (setref! ref valor)
+                   valor-unit))))
+      (begin-exp (primera resto) (evaluar-secuencia primera resto amb))
+      (if-exp (prueba entonces pruebas-elif entonces-elif sino)
+        (evaluar-if prueba entonces pruebas-elif entonces-elif sino amb))
+      (while-exp (condicion body)
+        (letrec ((ciclo (lambda ()
+                          (if (exigir-booleano (value-of condicion amb))(begin (value-of body amb) (ciclo))
+                              valor-unit))))
+          (ciclo)))
+      (prim-exp (prim args)
+        (evaluar-primitiva prim (evaluar-lista args amb)))
+      (proc-exp (ids tipos body) (closure ids body amb))
+      (apply-exp (rator rands)
+        (let ((proc (value-of rator amb)))
+          (aplicar-procedimiento proc (evaluar-lista rands amb))))
+      (letrec-exp (tipos-ret procnames idss tiposs cuerpos body)
+        (value-of body (ambiente-extendido-recursivo procnames idss cuerpos amb)))
+      ;; atomic, abort, new y field son de la segunda entrega
+      (else (eopl:error 'value-of
+                        "Esta construccion se implementa en la segunda entrega")))))
+
+;; ---------- primitivas ----------
+
+;; revisa que lleguen dos numeros y devuelve la lista de argumentos
+(define dos-numeros
+  (lambda (nombre args)
+    (if (and (= (length args) 2)
+             (number? (car args))
+             (number? (cadr args)))
+        args
+        (eopl:error nombre "Se esperaban dos numeros y llegaron: ~s" args))))
+
+(define dos-booleanos
+  (lambda (nombre args)
+    (if (and (= (length args) 2)
+             (boolean? (car args))
+             (boolean? (cadr args)))
+        args
+        (eopl:error nombre "Se esperaban dos booleanos y llegaron: ~s" args))))
+
+(define un-argumento
+  (lambda (nombre args)
+    (if (= (length args) 1)
+        (car args)
+        (eopl:error nombre "Se esperaba un solo argumento y llegaron: ~s" args))))
+
+(define todas-cadenas?
+  (lambda (lista)
+    (cond ((null? lista) #t)
+          ((string? (car lista)) (todas-cadenas? (cdr lista)))
+          (else #f))))
+
+;; los numeros se comparan con = y lo demas con equal?
+(define son-iguales?
+  (lambda (a b)
+    (if (and (number? a) (number? b))
+        (= a b)
+        (equal? a b))))
+
+;; evaluar-primitiva: Primitiva x Lista(Valor) -> Valor
+(define evaluar-primitiva
+  (lambda (prim args)
+    (cases primitiva prim
+      (suma-prim () (apply + (dos-numeros '+ args)))
+      (resta-prim () (apply - (dos-numeros '- args)))
+      (mult-prim () (apply * (dos-numeros '* args)))
+      ;; entre enteros / es division entera
+      (div-prim ()
+        (let ((a (car (dos-numeros '/ args)))
+              (b (cadr args)))
+          (cond ((zero? b) (eopl:error '/ "Division por cero"))
+                ((and (exact? a) (exact? b)) (quotient a b))
+                (else (/ a b)))))
+      ;; % solo acepta enteros
+      (mod-prim ()
+        (let ((a (car (dos-numeros '% args)))
+              (b (cadr args)))
+          (cond ((not (and (exact? a) (exact? b)))
+                 (eopl:error '% "% solo acepta enteros"))
+                ((zero? b) (eopl:error '% "Division por cero"))
+                (else (modulo a b)))))
+      (mayor-prim () (apply > (dos-numeros '> args)))
+      (menor-prim () (apply < (dos-numeros '< args)))
+      (mayor-igual-prim () (apply >= (dos-numeros '>= args)))
+      (menor-igual-prim () (apply <= (dos-numeros '<= args)))
+      (igual-prim ()
+        (if (= (length args) 2)
+            (son-iguales? (car args) (cadr args))
+            (eopl:error '== "Se esperaban dos argumentos")))
+      (diferente-prim ()
+        (if (= (length args) 2)
+            (not (son-iguales? (car args) (cadr args)))
+            (eopl:error '!= "Se esperaban dos argumentos")))
+      (and-prim ()
+        (let ((bools (dos-booleanos 'and args)))
+          (and (car bools) (cadr bools))))
+      (or-prim ()
+        (let ((bools (dos-booleanos 'or args)))
+          (or (car bools) (cadr bools))))
+      (not-prim ()
+        (let ((b (un-argumento 'not args)))
+          (if (boolean? b)
+              (not b)
+              (eopl:error 'not "Se esperaba un booleano: ~s" b))))
+      (concat-prim ()
+        (if (todas-cadenas? args)
+            (apply string-append args)
+            (eopl:error 'concat "concat exige cadenas: ~s" args)))
+      (length-prim ()
+        (let ((c (un-argumento 'length args)))
+          (if (string? c)
+              (string-length c)
+              (eopl:error 'length "Se esperaba una cadena: ~s" c))))
+      (to-string-prim ()
+        (valor->cadena (un-argumento 'to-string args)))
+      (to-number-prim ()
+        (let ((c (un-argumento 'to-number args)))
+          (if (and (string? c) (string->number c))
+              (string->number c)
+              (eopl:error 'to-number "No se puede convertir a numero: ~s" c))))
+      ;; print escribe en consola y devuelve unit
+      (print-prim ()
+        (begin (display (valor->cadena (un-argumento 'print args)))
+               (newline)
+               valor-unit)))))
 
