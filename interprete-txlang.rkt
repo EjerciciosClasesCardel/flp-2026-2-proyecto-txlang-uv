@@ -1,6 +1,5 @@
 #lang eopl
 ;Autores: Aura Maria Pelaez Luna,202459422-Valentina Valencia Lopez,202459626-Juan Felipe Aristízabal,2459364
-
 #|
   Interpretador de TxLang-UV.
   Proyecto final del curso Fundamentos de Interpretación y Compilación de
@@ -596,3 +595,19 @@
                (newline)
                valor-unit)))))
 
+;;; ==========================================================
+;;; 9. Interfaz
+;;; ==========================================================
+
+(define interpretar
+  (lambda (texto)
+    (let ((pgm (scan&parse texto)))
+      (begin
+        (chequear-programa pgm)
+        (evaluar-programa pgm)))))
+
+;; Lo que usan las baterías: un texto de TxLang-UV y el valor como texto.
+(define correr
+  (lambda (texto) (valor->texto (interpretar texto))))
+
+(provide (all-defined-out))
