@@ -108,6 +108,36 @@
 (prueba "while falso devuelve unit" "while false do 1 end" "unit")
 (prueba-rechazo "while no booleano" "while 1 do 2 end")
 
+;; --- Pruebas del TAD almacén ---
+(initialize-store!)
+(let ((r0 (newref! (int-val 10)))
+      (r1 (newref! (int-val 20))))
+  (begin
+    (verificar "newref! da índices consecutivos"
+               (string-append (number->string r0) (number->string r1)) "01")
+    (verificar "deref-ref lee la celda"
+               (valor->texto (deref-ref r1)) "20")
+    (setref! r0 (int-val 99))
+    (verificar "setref! escribe la celda"
+               (valor->texto (deref-ref r0)) "99")
+    (verificar "setref! no toca otras celdas"
+               (valor->texto (deref-ref r1)) "20")
+    (verificar "almacen-tamano cuenta las celdas"
+               (number->string (almacen-tamano)) "2")))
+
+(verificar "deref-ref de referencia inexistente falla"
+           (with-handlers ((exn:fail? (lambda (e) "ERROR")))
+             (begin (deref-ref 50) "no falló"))
+           "ERROR")
+(verificar "setref! de referencia inexistente falla"
+           (with-handlers ((exn:fail? (lambda (e) "ERROR")))
+             (begin (setref! 50 (int-val 1)) "no falló"))
+           "ERROR")
+(verificar "newref! rechaza lo que no es valor"
+           (with-handlers ((exn:fail? (lambda (e) "ERROR")))
+             (begin (newref! 5) "no falló"))
+           "ERROR")
+
 ;;; ==========================================================
 ;;; Segunda entrega: transacciones, registros y tipos
 ;;; ==========================================================
