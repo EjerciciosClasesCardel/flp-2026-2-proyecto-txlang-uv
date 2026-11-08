@@ -1,6 +1,5 @@
 #lang eopl
-;Autores: Nombre1 Codigo1, Nombre2 Codigo2, ...
-
+;Autores: Aura Maria Pelaez Luna,202459422-Valentina Valencia Lopez,202459626-Juan Felipe Aristízabal,2459364
 #|
   Batería de pruebas del interpretador de TxLang-UV.
 
@@ -83,24 +82,53 @@
 ;; (prueba "let y suma" "let a = 1, b = 2 in +(a, b) end" "3")
 ;; (prueba "una celda" "let c = ref(0) in begin set c := 5; deref(c) end end" "5")
 ;; (prueba-rechazo "if con prueba no booleana" "if 1 then 2 else 3 end")
-
-;;; ==========================================================
-;;; Segunda entrega: transacciones, registros y tipos
-;;; ==========================================================
-
-(eopl:printf "~%== Segunda entrega ==~%")
-
-;; Agregue aquí las pruebas de la segunda entrega: bloques atomic que
-;; confirman y que revierten, anidamiento, registros, y al menos cinco
-;; programas mal tipados con prueba-rechazo o prueba-tipo. Por ejemplo:
-;;
-;; (prueba-tipo "tipo de un proc" "proc (x: int) x end" "(int -> int)")
-;; (prueba-rechazo "suma de int y bool" "+(1, true)")
-
-;;; ==========================================================
-;;; Resumen
-;;; ==========================================================
-
-(eopl:printf "~%==========================================~%")
-(eopl:printf "  pasadas ~s, fallidas ~s~%" pasadas fallidas)
-(eopl:printf "==========================================~%")
+;; literales
+(prueba "entero negativo" "-7" "-7")
+(prueba "flotante" "3.14" "3.14")
+(prueba "cadena" "\"hola\"" "\"hola\"")
+(prueba "caracter" "'a'" "'a'")
+(prueba "booleano" "true" "true")
+(prueba "unit" "unit" "unit")
+;; comentarios
+(prueba "comentario de linea" "// hola\n+(1, 2)" "3")
+(prueba "comentario de bloque" "#| un bloque |# +(1, 2)" "3")
+;; primitivas
+(prueba "aritmetica" "*(-(10, 4), 2)" "12")
+(prueba "division entera" "/(7, 2)" "3")
+(prueba "division flotante" "/(7.0, 2.0)" "3.5")
+(prueba "modulo" "%(7, 2)" "1")
+(prueba "relacional" "<(1, 2)" "true")
+(prueba "mayor o igual" ">=(2, 2)" "true")
+(prueba "diferente" "!=(1, 2)" "true")
+(prueba "igualdad de cadenas" "==(\"a\", \"a\")" "true")
+(prueba "booleanas" "and(true, not(false))" "true")
+(prueba "or" "or(false, false)" "false")
+(prueba "concat" "concat(\"ab\", \"cd\")" "\"abcd\"")
+(prueba "length" "length(\"hola\")" "4")
+(prueba "to-string" "to-string(42)" "\"42\"")
+(prueba "to-number" "to-number(concat(\"1\", \"7\"))" "17")
+;; let, if, while, begin
+(prueba "let" "let a = 1, b = 2 in +(a, b) end" "3")
+(prueba "let: las ligaduras no se ven entre si" "let x = 1 in let x = 2, y = x in y end end" "1")
+(prueba "if con elif" "if false then 1 elif true then 2 else 3 end" "2")
+(prueba "begin" "begin 1; 2; 3 end" "3")
+(prueba "while"
+        "let c = ref(0) in begin while <(deref(c), 5) do set c := +(deref(c), 1) end; deref(c) end end"
+        "5")
+(prueba "print devuelve unit" "begin print(\"hola\"); 5 end" "5")
+;; almacen
+(prueba "una celda" "let c = ref(0) in begin set c := 5; deref(c) end end" "5")
+(prueba "anexo 1"
+        "let c = ref(0) in begin set c := +(deref(c), 1); set c := +(deref(c), 1); deref(c) end end"
+        "2")
+(prueba "anexo 7: referencia como argumento"
+        "let celda = ref(10), duplicar = proc (r: ref(int)) set r := *(deref(r), 2) end in begin apply duplicar (celda); apply duplicar (celda); deref(celda) end end"
+        "40")
+;; procedimientos y letrec
+(prueba "proc y apply" "let suma = proc (a: int, b: int) +(a, b) end in apply suma (3, 4) end" "7")
+(prueba "alcance lexico"
+        "let x = 10 in let f = proc (y: int) +(x, y) end in let x = 100 in apply f (1) end end end"
+        "11")
+(prueba "anexo 6: letrec"
+        "letrec int fact (n: int) = if ==(n, 0) then 1 else *(n, apply fact (-(n, 1))) end in apply fact (5) end"
+        "120")
