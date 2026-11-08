@@ -2,3 +2,5 @@ compiled/
 *.zo
 *.dep
 .DS_Store
+*.bak
+compiled/
