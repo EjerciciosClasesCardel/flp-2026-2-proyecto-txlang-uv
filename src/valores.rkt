@@ -53,3 +53,10 @@
       (proc-val (ids cuerpo amb) "<procedimiento>")
       (registro-val (nombre campos)
         (string-append "<registro " (symbol->string nombre) ">")))))
+
+(define valor->string
+  (lambda (v)
+    (cases valor v
+      (str-val (s) s)
+      (else (eopl:error 'valor->string "se esperaba una cadena y llegó ~s"
+                        (valor->texto v))))))
