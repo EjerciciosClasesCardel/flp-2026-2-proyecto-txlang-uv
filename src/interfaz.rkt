@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Nombre1 Codigo1, Nombre2 Codigo2, Nombre3 Codigo3
+;Autores: Samuel Garcia Parra 2459476, Nombre2 Codigo2, Nombre3 Codigo3
 
 (require "sintaxis.rkt" "ambiente.rkt" "almacen.rkt"
          "valores.rkt" "tipos.rkt" "interprete.rkt")
