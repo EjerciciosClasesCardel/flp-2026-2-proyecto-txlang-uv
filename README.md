@@ -19,10 +19,8 @@ pierde el 20 %; quien no aparezca aquí no cuenta como parte del grupo.
 
 | Nombre completo | Código | Correo institucional |
 |---|---|---|
-| | | |
-| | | |
-| | | |
-| | | |
+| Juan Sebastian Navarrete Rada | 2459562 | juan.sebastian.navarrete@correounivalle.edu.co |
+| Samuel Garcia Parra | 2459476 | samuel.parra@correounivalle.edu.co |
 
 ## Entregas
 
