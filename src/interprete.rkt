@@ -128,7 +128,11 @@
 
         (if (and (eq? nombre '/) (= b 0))
             (eopl:error nombre "Division por cero")
-            (num-val (operacion a b)))))))
+            (if (and (eq? nombre '/)
+                     (integer? a)
+                     (integer? b))
+                (num-val (quotient a b))
+                (num-val (operacion a b))))))))
 
 
 ;; ---------------------------------------------------------

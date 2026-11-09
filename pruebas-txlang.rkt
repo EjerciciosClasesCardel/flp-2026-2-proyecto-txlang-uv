@@ -92,13 +92,49 @@
 (ida-y-vuelta "registro, atomic y abort"
                 "record Cuenta { saldo: ref(int) } let c = new Cuenta { saldo = ref(10) } in atomic set field(c, saldo) := 0 onfail (m) abort(m) end end")
 
-;; Agregue aquí las pruebas de la primera entrega: literales de cada clase,
-;; let, ref/deref/set, begin, if con elif, while, cada primitiva, proc y
-;; apply, letrec con recursión mutua. Por ejemplo:
-;;
-;; (prueba "let y suma" "let a = 1, b = 2 in +(a, b) end" "3")
-;; (prueba "una celda" "let c = ref(0) in begin set c := 5; deref(c) end end" "5")
-;; (prueba-rechazo "if con prueba no booleana" "if 1 then 2 else 3 end")
+;; Pruebas de evaluación del núcleo de la primera entrega.
+(prueba "literal flotante" "+(1.5, 2.5)" "4.0")
+(prueba "literales cadena y caracter"
+        "if true then \"hola\" else 'x' end"
+        "hola")
+(prueba "aritmetica entera y modulo"
+        "+(+(%(17, 5), *(2, 3)), -(10, /(9, 2)))"
+        "14")
+(prueba "division por cero"
+        "/(1, 0)"
+        "ERROR: /: Division por cero")
+(prueba "relacionales y booleanas"
+        "if and(==(1, 1), and(>(3, 2), and(<(2, 3), and(>=(4, 4), and(<=(5, 5), !=(1, 2)))))) then true else false end"
+        "true")
+(prueba "cadenas y conversiones"
+        "concat(to-string(+(2, 3)), to-string(to-number(\"4\")))"
+        "54")
+(prueba "print devuelve unit" "print(\"mensaje\")" "unit")
+(prueba "let con ligaduras paralelas"
+        "let x = 1 in let x = 2, y = x in y end end"
+        "1")
+(prueba "referencia, deref y set"
+        "let c = ref(0) in begin set c := 5; deref(c) end end"
+        "5")
+(prueba-rechazo "deref exige referencia" "deref(5)")
+(prueba "begin devuelve la ultima expresion" "begin 1; 2; 3 end" "3")
+(prueba "if con elif"
+        "if false then 0 elif false then 1 elif true then 2 else 3 end"
+        "2")
+(prueba-rechazo "if exige prueba booleana" "if 1 then 2 else 3 end")
+(prueba "while y memoria mutable"
+        "let c = ref(0) in begin while <(deref(c), 3) do set c := +(deref(c), 1) end; deref(c) end end"
+        "3")
+(prueba "procedimiento con alcance lexico"
+        "let x = 10 in let f = proc (y: int) +(x, y) end in let x = 20 in apply f (1) end end end"
+        "11")
+(prueba-rechazo "apply verifica aridad" "apply proc (x: int) x end ()")
+(prueba "letrec factorial"
+        "letrec int fact (n: int) = if ==(n, 0) then 1 else *(n, apply fact (-(n, 1))) end in apply fact (5) end"
+        "120")
+(prueba "letrec con recursion mutua"
+        "letrec bool par (n: int) = if ==(n, 0) then true else apply impar (-(n, 1)) end bool impar (n: int) = if ==(n, 0) then false else apply par (-(n, 1)) end in apply par (4) end"
+        "true")
 
 ;;; ==========================================================
 ;;; Segunda entrega: transacciones, registros y tipos
