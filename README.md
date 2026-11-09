@@ -17,12 +17,12 @@ Esta tabla es lo que identifica al grupo, y coincide con el grupo conformado
 en el Campus Virtual. Sin ella, o con algún dato incompleto, la entrega
 pierde el 20 %; quien no aparezca aquí no cuenta como parte del grupo.
 
-| Nombre completo | Código | Correo institucional |
-|---|---|---|
-| | | |
-| | | |
-| | | |
-| | | |
+| Nombre completo                 | Código  | Correo institucional                        |
+|---------------------------------|---------|---------------------------------------------|
+| Juan Eduardo Calderon Jaramillo | 2611001 | juan.eduardo.calderon@correounivalle.edu.co |
+| Carlos Humberto Gutierrez Mejia | 2059817 | carlos.humberto.gutirrez@correounivalle.edu.co |
+|                                 |         |                                             |
+|                                 |         |                                             |
 
 ## Entregas
 
