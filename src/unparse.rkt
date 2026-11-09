@@ -1,5 +1,6 @@
 
 #lang eopl
+;Autores: Oliver De Jesus Arboleda Baez 2459684, Maria Fernanda Betancourt Montoya 2459510, Kevin Andres Rosero Romo 2459554
 
 (require "sintaxis.rkt")
 

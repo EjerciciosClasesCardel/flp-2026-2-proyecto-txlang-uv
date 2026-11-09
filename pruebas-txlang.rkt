@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Nombre1 Codigo1, Nombre2 Codigo2, ...
+;Autores: Oliver De Jesus Arboleda Baez 2459684, Maria Fernanda Betancourt Montoya 2459510, Kevin Andres Rosero Romo 2459554
 
 #|
   Batería de pruebas del interpretador de TxLang-UV.
@@ -75,6 +75,22 @@
 
 (prueba "literal entero" "42" "42")
 (ida-y-vuelta "unparse de un literal" "42")
+
+;; Estas pruebas validan el alcance de sintaxis de la primera entrega. Las
+;; construcciones de segunda entrega se parsean y se reconstruyen, aunque su
+;; evaluación se implementa posteriormente.
+(ida-y-vuelta "comentarios y let"
+                "let x = 1 // comentario de linea\n in x end")
+(ida-y-vuelta "literales y condicional con elif"
+                "if false then \"hola\" elif true then 'a' else \"fin\" end")
+(ida-y-vuelta "referencia, secuencia y ciclo"
+                "let c = ref(0) in begin while <(deref(c), 2) do set c := +(deref(c), 1) end; deref(c) end end")
+(ida-y-vuelta "procedimiento con tipo de referencia"
+                "apply proc (r: ref(int), activo: bool) if activo then deref(r) else 0 end end (ref(7), true)")
+(ida-y-vuelta "letrec con dos funciones"
+                "letrec int par (n: int) = if ==(n, 0) then 1 else apply impar (-(n, 1)) end bool impar (n: int) = if ==(n, 0) then false else apply par (-(n, 1)) end in apply par (4) end")
+(ida-y-vuelta "registro, atomic y abort"
+                "record Cuenta { saldo: ref(int) } let c = new Cuenta { saldo = ref(10) } in atomic set field(c, saldo) := 0 onfail (m) abort(m) end end")
 
 ;; Agregue aquí las pruebas de la primera entrega: literales de cada clase,
 ;; let, ref/deref/set, begin, if con elif, while, cada primitiva, proc y
