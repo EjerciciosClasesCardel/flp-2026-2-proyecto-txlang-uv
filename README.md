@@ -19,10 +19,9 @@ pierde el 20 %; quien no aparezca aquí no cuenta como parte del grupo.
 
 | Nombre completo | Código | Correo institucional |
 |---|---|---|
-| | | |
-| | | |
-| | | |
-| | | |
+| Oliver De Jesus Arboleda Baez | 2459684 | oliver.arboleda@correounivalle.edu.co |
+| Maria Fernanda Betancourt Montoya	| 2459510 | maria.fernanda.betancourt@correounivalle.edu.co |
+| Kevin Andres Rosero Romo	| 2459554 | rosero.kevin@correounivalle.edu.co |
 
 ## Entregas
 
