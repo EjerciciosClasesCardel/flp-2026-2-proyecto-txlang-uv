@@ -1,5 +1,5 @@
 #lang eopl
-;Autores: Nombre1 Codigo1, Nombre2 Codigo2, ...
+;Autores: Samuel Garcia Parra 2459476, Juan Sebastian Navarrete Rada 2459562.
 
 #|
   Los diez ejemplos del anexo del enunciado, copiados literalmente del
